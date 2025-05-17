@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# PyQt5 build artifacts
+*.pyc
+*.pyd
+*.so
+
+# Matplotlib cache
+.matplotlib/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Python egg files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Output files
+*.txt~
+*.out
+*.bak
+
+# Test coverage reports
+htmlcov/
+.coverage
+*.cover
