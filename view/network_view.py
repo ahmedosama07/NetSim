@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QDialog, QTableWidget, QFrame, QAction,
-                             QTableWidgetItem, QButtonGroup, QRadioButton)
+                             QTableWidgetItem, QButtonGroup, QRadioButton, QTextEdit)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -108,10 +109,12 @@ class NetworkView(QMainWindow):
         file_buttons = [
             ("Open File", self.controller.load_file),
             ("Save Graph", self.controller.save_graph),
-            ("Clear All", self.controller.clear_graph)
+            ("Clear All", self.controller.clear_graph),
+            ("Help", self.show_help_dialog)
         ]
         
         for btn_text, handler in file_buttons:
+            print(f"Creating button: {btn_text}")
             btn = QPushButton(btn_text)
             btn.clicked.connect(handler)
             btn.setFixedHeight(30)
@@ -204,3 +207,80 @@ class NetworkView(QMainWindow):
         
         layout.addWidget(table)
         dialog.exec_()
+
+    def show_help_dialog(self):
+        """Display help documentation in a scrollable window."""
+        help_text =  """Network Simulator Help
+
+                        Keyboard Shortcuts:
+                        N - Enter Node Creation Mode
+                        E - Enter Edge Creation Mode
+                        C - Delete Node under cursor
+                        D - Delete Edge near cursor
+                        Ctrl+O - Open Network File
+                        Ctrl+S - Save Network File
+                        Ctrl+N - Clear Current Network
+
+                        Mouse Actions:
+                        Left Click (Add Node Mode) - Place new node
+                        Left Click (Add Edge Mode) - Select nodes to connect
+                        Left Click (View Mode) - Show node forwarding table
+                        Right Click - Pan view
+                        Scroll - Zoom in/out
+
+                        Menu Operations:
+                        File -> Open - Load network from file
+                        File -> Save - Save current network
+                        File -> New - Clear current network"""
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Help Documentation")
+        dialog.resize(500, 400)
+        
+        layout = QVBoxLayout(dialog)
+        text_edit = QTextEdit()
+        text_edit.setPlainText(help_text)
+        text_edit.setReadOnly(True)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        
+        layout.addWidget(text_edit)
+        layout.addWidget(close_btn)
+        dialog.exec_()
+
+    def keyPressEvent(self, event):
+        """Handle keyboard shortcuts for deletion operations."""
+        key = event.key()
+        
+        if key == Qt.Key_N:
+            self.controller.set_mode('add_node')
+        elif key == Qt.Key_E:
+            self.controller.set_mode('add_edge')
+        elif key == Qt.Key_C:
+            self._handle_delete_node()
+        elif key == Qt.Key_D:
+            self._handle_delete_edge()
+        elif key == Qt.Key_Escape:
+            self.controller.set_mode('view')
+        else:
+            super().keyPressEvent(event)
+
+    def _handle_delete_node(self):
+        """Delete node under cursor position."""
+        pos = self.canvas.mapFromGlobal(QCursor.pos())
+        x, y = self._convert_pos_to_data(pos)
+        self.controller.delete_node_at(x, y)
+
+    def _handle_delete_edge(self):
+        """Delete edge nearest to cursor position."""
+        pos = self.canvas.mapFromGlobal(QCursor.pos())
+        x, y = self._convert_pos_to_data(pos)
+        self.controller.delete_edge_near(x, y)
+
+    def _convert_pos_to_data(self, pos):
+        """Convert widget position to data coordinates."""
+        ax = self.figure.gca()
+        x_widget = pos.x()
+        y_widget = pos.y()
+        return ax.transData.inverted().transform((x_widget, y_widget))

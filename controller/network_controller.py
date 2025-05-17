@@ -24,15 +24,29 @@ class NetworkController:
         
         # Connect mode radio buttons to update handler
         for btn in self.view.mode_group.buttons():
-            btn.toggled.connect(self.update_mode)
+            btn.toggled.connect(lambda checked, b=btn: self.update_mode(b))
 
-    def update_mode(self):
+    def update_mode(self, button):
         """Update current interaction mode based on selected radio button.
         
         Triggered when user changes mode selection. Updates the controller's
         current_mode attribute to match the selected UI mode.
         """
-        self.current_mode = self.view.mode_group.checkedButton().mode
+        if button.isChecked():
+            self.current_mode = button.mode
+
+    def set_mode(self, mode):
+        """Programmatically set interaction mode."""
+        self.current_mode = mode
+
+        if mode == 'view':
+            self.selected_node = None
+            
+        # Update radio buttons to match
+        for btn in self.view.mode_group.buttons():
+            if btn.mode == mode:
+                btn.setChecked(True)
+                break
 
     def handle_canvas_click(self, event):
         """Handle canvas click events based on current interaction mode.
@@ -152,3 +166,29 @@ class NetworkController:
             message (str): Descriptive error message to display
         """
         QMessageBox.critical(self.view, "Error", message)
+
+
+    def delete_node_at(self, x, y):
+        """Delete node at specified coordinates."""
+        node = self.find_nearest_node(x, y)
+        if node:
+            self.model.delete_node(node)
+            self.view.update_visualization(self.model)
+
+    def delete_edge_near(self, x, y):
+        """Delete edge nearest to specified coordinates."""
+        edge = self.model.find_nearest_edge(x, y)
+        if edge:
+            self.model.delete_edge(edge)
+            self.view.update_visualization(self.model)
+
+    def find_nearest_node(self, x, y):
+        """Find node near coordinates with relaxed threshold."""
+        min_dist = float('inf')
+        nearest = None
+        for node, (nx, ny) in self.model.node_positions.items():
+            dist = (nx - x)**2 + (ny - y)**2
+            if dist < min_dist and dist < 0.5:  # Increased threshold
+                min_dist = dist
+                nearest = node
+        return nearest

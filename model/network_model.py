@@ -1,5 +1,6 @@
 import networkx as nx
 import heapq
+import math
 
 class NetworkModel:
     """Data model class representing the network graph and associated properties.
@@ -164,3 +165,63 @@ class NetworkModel:
                     f.write(f"{u},{v},{w}\n")
         except IOError as e:
             raise IOError(f"Failed to save file: {e}")
+
+
+    def delete_node(self, node):
+        """Remove node and all connected edges."""
+        if node in self.G:
+            # Remove from graph
+            self.G.remove_node(node)
+            
+            # Remove from positions
+            del self.node_positions[node]
+            
+            # Remove related edges
+            self._edges = [
+                (u, v, w) for u, v, w in self._edges 
+                if u != node and v != node
+            ]
+
+    def delete_edge(self, edge):
+        """Remove specific edge from the network."""
+        u, v = edge
+        if self.G.has_edge(u, v):
+            self.G.remove_edge(u, v)
+            self._edges = [
+                (src, dest, w) for src, dest, w in self._edges
+                if not ((src == u and dest == v) or (src == v and dest == u))
+            ]
+
+    def find_nearest_edge(self, x, y, threshold=1.0):
+        """Find edge closest to coordinates using line segment distance."""
+        min_distance = float('inf')
+        nearest_edge = None
+        
+        for u, v in self.G.edges():
+            ux, uy = self.node_positions[u]
+            vx, vy = self.node_positions[v]
+            distance = self._distance_to_segment((x, y), (ux, uy), (vx, vy))
+            
+            if distance < min_distance and distance < threshold:
+                min_distance = distance
+                nearest_edge = (u, v)
+                
+        return nearest_edge
+
+    def _distance_to_segment(self, p, a, b):
+        """Calculate distance from point to line segment."""
+        # Vector math implementation
+        ax, ay = a
+        bx, by = b
+        px, py = p
+        
+        if ax == bx and ay == by:
+            return math.hypot(px - ax, py - ay)
+        
+        seg_length_sq = (bx - ax)**2 + (by - ay)**2
+        t = ((px - ax)*(bx - ax) + (py - ay)*(by - ay)) / seg_length_sq
+        t = max(0, min(1, t))
+        proj_x = ax + t*(bx - ax)
+        proj_y = ay + t*(by - ay)
+        
+        return math.hypot(px - proj_x, py - proj_y)
